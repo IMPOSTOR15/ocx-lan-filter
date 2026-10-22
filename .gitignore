@@ -1,0 +1,15 @@
+# runtime state and secrets live outside the repo; never commit them
+key
+*.key
+keys/
+config.json
+runtime.json
+filter.log
+.env
+
+__pycache__/
+*.pyc
+.DS_Store
+.build/
+build/
+*.dmg

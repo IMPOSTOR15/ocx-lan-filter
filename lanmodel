@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Choose which ocx model is exposed to the LAN as `local-llm`.
+
+  lanmodel                 show the current model
+  lanmodel list            numbered list of models ocx can serve
+  lanmodel set <n|id>      switch (number from `list`, or an exact id); applies instantly
+  lanmodel test            send a real request through the LAN filter
+  lanmodel restart         restart the filter service (only needed after editing filter.py)
+"""
+import json
+import os
+import subprocess
+import sys
+import urllib.request
+
+BASE = os.environ.get("OCX_LAN_FILTER_HOME") or os.path.expanduser("~/.local/share/ocx-lan-filter")
+CONFIG = os.path.join(BASE, "config.json")
+OCX = os.environ.get("LANMODEL_OCX_URL", "http://127.0.0.1:10100/v1/models")
+FILTER_PORT = os.environ.get("FILTER_PORT", "10200")
+LABEL = "com.local.ocx-lan-filter"
+
+
+def load_raw() -> dict:
+    try:
+        with open(CONFIG) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def default_endpoint(cfg: dict):
+    """The endpoint `lanmodel` manages: id 'default', else the first one. None for a v1 config."""
+    eps = cfg.get("endpoints")
+    if not isinstance(eps, list) or not eps:
+        return None
+    return next((e for e in eps if isinstance(e, dict) and e.get("id") == "default"), eps[0])
+
+
+def current() -> str:
+    cfg = load_raw()
+    ep = default_endpoint(cfg)
+    if ep and ep.get("aliases"):
+        return ep["aliases"][0].get("model", "")
+    return cfg.get("upstream_model", "")
+
+
+def current_alias() -> str:
+    ep = default_endpoint(load_raw())
+    if ep and ep.get("aliases"):
+        return ep["aliases"][0].get("alias", "local-llm")
+    return "local-llm"
+
+
+def filter_url() -> str:
+    ep = default_endpoint(load_raw())
+    return f"http://127.0.0.1:{(ep or {}).get('port', FILTER_PORT)}/v1"
+
+
+def key_path() -> str:
+    ep = default_endpoint(load_raw())
+    return os.path.join(BASE, (ep or {}).get("keyFile", "key"))
+
+
+def ocx_models() -> list:
+    with urllib.request.urlopen(OCX, timeout=10) as r:
+        data = json.load(r)["data"]
+    return sorted(m["id"] for m in data)
+
+
+def write_config(model: str) -> None:
+    """Set the model behind the first alias of the managed endpoint; keep everything else as is."""
+    cfg = load_raw()
+    ep = default_endpoint(cfg)
+    if ep and ep.get("aliases"):
+        ep["aliases"][0]["model"] = model
+        cfg["upstream_model"] = model  # mirror for a v1 filter.py
+    else:
+        cfg = {"upstream_model": model}
+    tmp = CONFIG + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(cfg, f, indent=2)
+    os.replace(tmp, CONFIG)  # atomic, the filter never sees a half-written file
+
+
+def cmd_list() -> list:
+    try:
+        models = ocx_models()
+    except Exception as e:
+        sys.exit(f"cannot reach ocx at {OCX}: {e}")
+    cur = current()
+    for i, m in enumerate(models, 1):
+        print(f"{'*' if m == cur else ' '} {i:2d}  {m}")
+    return models
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    cmd = args[0] if args else "show"
+
+    if cmd == "show":
+        ep = default_endpoint(load_raw())
+        if ep and len(ep.get("aliases", [])) > 0:
+            for a in ep["aliases"]:
+                print(f"{a['alias']} -> {a['model']}")
+        else:
+            print(f"local-llm -> {current() or '(not set)'}")
+    elif cmd == "list":
+        cmd_list()
+    elif cmd == "set":
+        if len(args) < 2:
+            sys.exit("usage: lanmodel set <number|model-id>   (see `lanmodel list`)")
+        try:
+            models = ocx_models()
+        except Exception as e:
+            sys.exit(f"cannot reach ocx at {OCX}: {e}")
+        want = args[1]
+        if want.isdigit():
+            idx = int(want)
+            if not 1 <= idx <= len(models):
+                sys.exit(f"number out of range 1..{len(models)}")
+            want = models[idx - 1]
+        if want not in models:
+            sys.exit(f"'{want}' is not served by ocx. Run `lanmodel list`.")
+        old = current()
+        write_config(want)
+        print(f"{current_alias()}: {old or '(none)'} -> {want}")
+        print(f"applied instantly; clients keep using the alias '{current_alias()}'")
+    elif cmd == "test":
+        key = open(key_path()).read().strip()
+        body = json.dumps({
+            "model": current_alias(),
+            "messages": [{"role": "user", "content": "What is 2+2? Just the number."}],
+            "max_tokens": 200,
+        }).encode()
+        req = urllib.request.Request(
+            filter_url() + "/chat/completions", data=body,
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=180) as r:
+                d = json.load(r)
+            print(f"ok via {current()} (upstream reported '{d.get('model')}'): "
+                  f"{d['choices'][0]['message']['content']!r}")
+        except Exception as e:
+            detail = getattr(e, "read", lambda: b"")().decode(errors="replace")[:300]
+            sys.exit(f"test failed: {e} {detail}")
+    elif cmd == "restart":
+        subprocess.run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/{LABEL}"], check=True)
+        print("filter restarted")
+    else:
+        print(__doc__)
+        sys.exit(1 if cmd not in ("-h", "--help", "help") else 0)
+
+
+if __name__ == "__main__":
+    main()
