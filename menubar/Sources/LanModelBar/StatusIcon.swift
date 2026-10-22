@@ -34,6 +34,6 @@ struct StatusDot: View {
             }
         }()
         Image(systemName: symbol).foregroundStyle(color)
-            .accessibilityLabel(enabled ? S.stateLabel(state) : "выключен")
+            .accessibilityLabel(enabled ? S.stateLabel(state) : tr("выключен", "off"))
     }
 }

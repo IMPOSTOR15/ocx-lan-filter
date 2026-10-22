@@ -7,7 +7,7 @@ struct FormScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScreenHeader(title: ui.isNew ? "Новый эндпоинт" : "Изменить", backLabel: S.cancel, back: { ui.requestClose() }) {
+            ScreenHeader(title: ui.isNew ? tr("Новый эндпоинт", "New endpoint") : tr("Изменить", "Edit"), backLabel: S.cancel, back: { ui.requestClose() }) {
                 Button(S.save) { ui.save() }
                     .glassButton(prominent: true)
                     .keyboardShortcut(.defaultAction)
@@ -52,11 +52,11 @@ struct FormScreen: View {
     }
 
     private var general: some View {
-        FormCard(title: "Общее") {
-            TextField("Название", text: bind(\.name)).textFieldStyle(.plain).inset()
+        FormCard(title: tr("Общее", "General")) {
+            TextField(tr("Название", "Name"), text: bind(\.name)).textFieldStyle(.plain).inset()
             error("endpoints[\(i)].name")
-            FormRow(label: "Включён") {
-                Toggle("Включён", isOn: bind(\.enabled)).toggleStyle(.switch).controlSize(.small).labelsHidden()
+            FormRow(label: tr("Включён", "Enabled")) {
+                Toggle(tr("Включён", "Enabled"), isOn: bind(\.enabled)).toggleStyle(.switch).controlSize(.small).labelsHidden()
             }
             FormRow(label: "Id") {
                 Text(ui.endpoint?.id ?? "").font(.callout.monospaced()).foregroundStyle(.secondary)
@@ -66,59 +66,62 @@ struct FormScreen: View {
     }
 
     private var network: some View {
-        FormCard(title: "Сеть") {
-            Picker("Доступ", selection: Binding(get: { ui.endpoint?.scope ?? .lan }, set: { ui.set(\.scope, $0) })) {
-                Text("Вся сеть").tag(ListenScope.lan)
-                Text("Этот Mac").tag(ListenScope.localOnly)
+        FormCard(title: tr("Сеть", "Network")) {
+            Picker(tr("Доступ", "Access"), selection: Binding(get: { ui.endpoint?.scope ?? .lan }, set: { ui.set(\.scope, $0) })) {
+                Text(tr("Вся сеть", "Whole network")).tag(ListenScope.lan)
+                Text(tr("Этот Mac", "This Mac")).tag(ListenScope.localOnly)
             }
             .pickerStyle(.segmented).labelsHidden()
-            Text(ui.endpoint?.scope == .lan ? "Слушает 0.0.0.0, доступен устройствам в локальной сети по ключу"
-                                           : "Слушает 127.0.0.1, доступен только на этом Mac")
+            Text(ui.endpoint?.scope == .lan
+                 ? tr("Слушает 0.0.0.0, доступен устройствам в локальной сети по ключу",
+                      "Listens on 0.0.0.0, reachable from your local network with the key")
+                 : tr("Слушает 127.0.0.1, доступен только на этом Mac",
+                      "Listens on 127.0.0.1, reachable from this Mac only"))
                 .font(.caption).foregroundStyle(.secondary)
-            FormRow(label: "Порт") {
-                TextField("Порт", value: bind(\.port), format: .number.grouping(.never))
+            FormRow(label: tr("Порт", "Port")) {
+                TextField(tr("Порт", "Port"), value: bind(\.port), format: .number.grouping(.never))
                     .textFieldStyle(.plain).multilineTextAlignment(.trailing).labelsHidden()
                     .inset().frame(width: 100)
             }
             error("endpoints[\(i)].port")
             if ui.portOrScopeChanged {
-                Label("Клиенты на старом адресе потеряют соединение", systemImage: "exclamationmark.triangle.fill")
+                Label(tr("Клиенты на старом адресе потеряют соединение", "Clients on the old address will lose the connection"), systemImage: "exclamationmark.triangle.fill")
                     .font(.caption).foregroundStyle(.orange)
             }
         }
     }
 
     private var keySection: some View {
-        FormCard(title: "Ключ доступа") {
+        FormCard(title: tr("Ключ доступа", "Access key")) {
             if ui.keyExists {
                 Text(ui.revealed ?? "lan_••••••••••••••••").font(.callout.monospaced())
                     .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).inset()
                 HStack(spacing: 8) {
-                    Button(ui.revealed == nil ? "Показать" : "Скрыть") { ui.toggleReveal() }.glassButton()
-                    Button("Копировать") {
+                    Button(ui.revealed == nil ? tr("Показать", "Show") : tr("Скрыть", "Hide")) { ui.toggleReveal() }.glassButton()
+                    Button(tr("Копировать", "Copy")) {
                         if let id = ui.endpoint?.id, let k = model.key(for: id) { Clipboard.copySecret(k.value) }
                     }.glassButton()
                     Spacer()
-                    Button("Сменить…") { ui.pending = .rotate }.glassButton()
+                    Button(tr("Сменить…", "Rotate…")) { ui.pending = .rotate }.glassButton()
                 }
                 .controlSize(.small).glassContainer()
                 if ui.revealed != nil {
-                    Text("Ключ скроется через 15 секунд").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Ключ скроется через 15 секунд", "The key hides again in 15 seconds")).font(.caption).foregroundStyle(.secondary)
                 }
             } else {
-                Label("Будет создан при сохранении", systemImage: "key").font(.callout).foregroundStyle(.secondary)
+                Label(tr("Будет создан при сохранении", "Will be created on save"), systemImage: "key").font(.callout).foregroundStyle(.secondary)
             }
             error("endpoints[\(i)].keyFile")
         }
     }
 
     private var aliases: some View {
-        FormCard(title: "Алиасы") {
+        FormCard(title: tr("Алиасы", "Aliases")) {
             ForEach(Array((ui.endpoint?.aliases ?? []).enumerated()), id: \.offset) { j, a in
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
-                        TextField("Алиас", text: bindAlias(j, \.alias))
+                        TextField(tr("Алиас", "Alias"), text: bindAlias(j, \.alias))
                             .textFieldStyle(.plain).font(.callout.monospaced()).inset().frame(width: 124)
                         ModelPill(model: a.model, known: model.ocxModels?.contains { $0.id == a.model } ?? true) {
                             if let ep = ui.endpoint {
@@ -128,14 +131,14 @@ struct FormScreen: View {
                         Button { ui.removeAlias(j) } label: {
                             Image(systemName: "minus.circle.fill").font(.title3).foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain).help("Удалить алиас").accessibilityLabel("Удалить алиас \(a.alias)")
+                        .buttonStyle(.plain).help(tr("Удалить алиас", "Remove alias")).accessibilityLabel(tr("Удалить алиас \(a.alias)", "Remove alias \(a.alias)"))
                         .disabled((ui.endpoint?.aliases.count ?? 0) <= 1)
                     }
-                    FormRow(label: "Контекст, токенов") {
-                        TextField("Контекст", value: bindAlias(j, \.contextLength), format: .number.grouping(.never))
+                    FormRow(label: tr("Контекст, токенов", "Context, tokens")) {
+                        TextField(tr("Контекст", "Context"), value: bindAlias(j, \.contextLength), format: .number.grouping(.never))
                             .textFieldStyle(.plain).multilineTextAlignment(.trailing).labelsHidden()
                             .inset().frame(width: 110)
-                            .help("Контекст в токенах, который объявляется клиентам")
+                            .help(tr("Контекст в токенах, который объявляется клиентам", "Context size in tokens advertised to clients"))
                     }
                     .font(.callout).foregroundStyle(.secondary)
                     ForEach(["alias", "model", "contextLength"], id: \.self) { f in
@@ -145,21 +148,21 @@ struct FormScreen: View {
                 if j < (ui.endpoint?.aliases.count ?? 0) - 1 { Divider() }
             }
             error("endpoints[\(i)].aliases")
-            Button { ui.addAlias() } label: { Label("Добавить алиас", systemImage: "plus") }
+            Button { ui.addAlias() } label: { Label(tr("Добавить алиас", "Add alias"), systemImage: "plus") }
                 .glassButton().controlSize(.small)
         }
     }
 
     private var connection: some View {
-        FormCard(title: "Подключение") {
+        FormCard(title: tr("Подключение", "Connection")) {
             if let ep = ui.endpoint {
                 let url = NetworkInfo.baseURL(for: ep, lanIP: model.lanIP)
                 HStack(spacing: 8) {
                     Text(url).font(.callout.monospaced()).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading).inset()
-                    GlassIconButton(symbol: "doc.on.doc", label: "Скопировать URL", size: 28) { Clipboard.copy(url) }
+                    GlassIconButton(symbol: "doc.on.doc", label: tr("Скопировать URL", "Copy URL"), size: 28) { Clipboard.copy(url) }
                 }
-                Button("Копировать curl") { Clipboard.copy(NetworkInfo.curlExample(for: ep, lanIP: model.lanIP)) }
+                Button(tr("Копировать curl", "Copy curl")) { Clipboard.copy(NetworkInfo.curlExample(for: ep, lanIP: model.lanIP)) }
                     .glassButton().controlSize(.small)
             }
         }
@@ -167,7 +170,7 @@ struct FormScreen: View {
 
     private var danger: some View {
         Button(role: .destructive) { ui.pending = .delete } label: {
-            Label("Удалить эндпоинт", systemImage: "trash").frame(maxWidth: .infinity)
+            Label(tr("Удалить эндпоинт", "Delete endpoint"), systemImage: "trash").frame(maxWidth: .infinity)
         }
         .glassButton().controlSize(.large).tint(.red).foregroundStyle(.red)
     }
@@ -177,9 +180,9 @@ struct FormScreen: View {
             if let e = ui.saveError {
                 Label(e, systemImage: "xmark.octagon.fill").foregroundStyle(.red).lineLimit(2)
             } else if !ui.issues.isEmpty {
-                Label("Исправьте ошибки в форме", systemImage: "exclamationmark.circle.fill").foregroundStyle(.red)
+                Label(tr("Исправьте ошибки в форме", "Fix the errors in the form"), systemImage: "exclamationmark.circle.fill").foregroundStyle(.red)
             } else if ui.dirty {
-                Label("Есть несохранённые изменения", systemImage: "circle.fill").foregroundStyle(.secondary)
+                Label(tr("Есть несохранённые изменения", "Unsaved changes"), systemImage: "circle.fill").foregroundStyle(.secondary)
             } else {
                 Text(" ")
             }

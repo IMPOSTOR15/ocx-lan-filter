@@ -30,7 +30,7 @@ keep working without a token.
 - Streaming works. Standard library only, no Python dependencies.
 - Native **menu bar app** (SwiftUI, Apple Liquid Glass look on macOS 26, material fallback on macOS 14–15) and a `lanmodel` CLI.
 - Closing the app does **not** stop the proxy: it runs as a `launchd` agent.
-- The app interface is currently in Russian only.
+- The app UI is available in **English and Russian**. It follows the system language (Russian only if it is your primary macOS language, English otherwise); you can override it in **Settings**.
 
 ## Requirements
 
@@ -78,7 +78,8 @@ Everything lives in one window under the menu bar icon (no separate windows or d
   test request through the endpoint, **Edit**.
 - **Endpoint form (＋ or Edit).** Name, enabled switch, access (**whole network** `0.0.0.0` / **this Mac** `127.0.0.1`), port,
   access key (show for 15 s, copy, rotate), aliases with their context length, delete.
-- **Footer.** Launch at login, restart the service, open the log, quit.
+- **Footer.** Settings, restart the service, open the log, quit.
+- **Settings.** Language (System / Русский / English; the choice is applied instantly), launch at login, app version.
 - A banner appears when the service is missing, outdated or stopped, when the config is invalid, or when a model is no longer in the `ocx` catalog.
   Where possible it has a one-click fix.
 

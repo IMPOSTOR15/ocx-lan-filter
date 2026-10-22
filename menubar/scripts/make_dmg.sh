@@ -2,7 +2,7 @@
 # Builds a universal, ad-hoc signed app and packs it into build/LAN-Model-Proxy-<version>.dmg.
 set -eu
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-1.1.0}"
 export VERSION UNIVERSAL=1
 
 "$HERE/scripts/build_app.sh"

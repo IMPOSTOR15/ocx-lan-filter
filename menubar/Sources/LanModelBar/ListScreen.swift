@@ -50,15 +50,15 @@ struct ListScreen: View {
 
     private var ocxLine: String {
         let base = "ocx \(model.config.upstream.host):\(model.config.upstream.port)"
-        guard let n = model.ocxModels?.count else { return base + " · недоступен" }
-        return base + " · моделей: \(n)"
+        guard let n = model.ocxModels?.count else { return base + tr(" · недоступен", " · unavailable") }
+        return base + tr(" · моделей: \(n)", " · models: \(n)")
     }
 
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "network").font(.system(size: 34, weight: .light)).foregroundStyle(.secondary)
-            Text("Нет эндпоинтов").font(.headline)
-            Button("Создать эндпоинт") { ui.startNew() }.glassButton(prominent: true).controlSize(.large)
+            Text(tr("Нет эндпоинтов", "No endpoints")).font(.headline)
+            Button(tr("Создать эндпоинт", "Create endpoint")) { ui.startNew() }.glassButton(prominent: true).controlSize(.large)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -107,9 +107,9 @@ struct ListScreen: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            Toggle(S.launchAtLogin, isOn: Binding(get: { ui.launchAtLogin }, set: { ui.setLaunchAtLogin($0) }))
-                .toggleStyle(.switch).controlSize(.mini)
-                .font(.callout)
+            Button { ui.screen = .settings } label: { Label(S.settings, systemImage: "gearshape") }
+                .glassButton().controlSize(.regular)
+                .keyboardShortcut(",")
             Spacer()
             HStack(spacing: 8) {
                 GlassIconButton(symbol: "arrow.clockwise", label: S.restartService, size: 30) { ui.pending = .restart }
@@ -135,7 +135,7 @@ struct ModelPill: View {
                 if !known {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 }
-                Text(model.isEmpty ? "Выбрать модель" : model)
+                Text(model.isEmpty ? tr("Выбрать модель", "Choose a model") : model)
                     .font(.footnote).lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
@@ -146,8 +146,8 @@ struct ModelPill: View {
         }
         .buttonStyle(.plain)
         .glassSurface(Capsule(), tint: known ? nil : .orange.opacity(0.25), interactive: true)
-        .help(known ? "Выбрать модель" : "Этой модели нет в каталоге ocx")
-        .accessibilityHint("Открыть выбор модели")
+        .help(known ? tr("Выбрать модель", "Choose a model") : tr("Этой модели нет в каталоге ocx", "This model is not in the ocx catalog"))
+        .accessibilityHint(tr("Открыть выбор модели", "Open the model picker"))
     }
 }
 
@@ -164,7 +164,7 @@ struct EndpointCard: View {
 
     private var runtimeError: String? {
         guard let e = runtimeEntry, e.state == .error else { return nil }
-        return e.error ?? "ошибка"
+        return e.error ?? tr("ошибка", "error")
     }
 
     var body: some View {
@@ -173,15 +173,15 @@ struct EndpointCard: View {
                 StatusDot(state: runtimeEntry?.state, enabled: endpoint.enabled)
                 Text(endpoint.name).font(.headline).lineLimit(1)
                 if endpoint.scope == .localOnly {
-                    Text("этот Mac").font(.caption2.weight(.medium)).padding(.horizontal, 7).padding(.vertical, 2)
+                    Text(tr("этот Mac", "this Mac")).font(.caption2.weight(.medium)).padding(.horizontal, 7).padding(.vertical, 2)
                         .background(Color.primary.opacity(0.10), in: Capsule())
                 }
                 Spacer()
-                Toggle("Включён", isOn: Binding(
+                Toggle(tr("Включён", "Enabled"), isOn: Binding(
                     get: { endpoint.enabled },
                     set: { _ = model.setEnabled(endpoint: endpoint.id, $0) }))
                     .toggleStyle(.switch).controlSize(.small).labelsHidden()
-                    .accessibilityLabel("Эндпоинт \(endpoint.name) включён")
+                    .accessibilityLabel(tr("Эндпоинт \(endpoint.name) включён", "Endpoint \(endpoint.name) enabled"))
             }
             Text(model.baseURL(endpoint)).font(.caption.monospaced()).foregroundStyle(.secondary)
                 .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
@@ -213,12 +213,12 @@ struct EndpointCard: View {
     private var actions: some View {
         HStack(spacing: 8) {
             HStack(spacing: 6) {
-                GlassIconButton(symbol: "doc.on.doc", label: "Скопировать URL", size: 28) { Clipboard.copy(model.baseURL(endpoint)) }
-                GlassIconButton(symbol: "terminal", label: "Скопировать curl", size: 28) {
+                GlassIconButton(symbol: "doc.on.doc", label: tr("Скопировать URL", "Copy URL"), size: 28) { Clipboard.copy(model.baseURL(endpoint)) }
+                GlassIconButton(symbol: "terminal", label: tr("Скопировать curl", "Copy curl"), size: 28) {
                     Clipboard.copy(NetworkInfo.curlExample(for: endpoint, lanIP: model.lanIP))
                 }
                 GlassIconButton(symbol: copiedKey ? "checkmark" : "key",
-                                label: copiedKey ? "Скопировано" : "Скопировать ключ (очистится через 60 с)",
+                                label: copiedKey ? tr("Скопировано", "Copied") : tr("Скопировать ключ (очистится через 60 с)", "Copy key (clipboard clears after 60 s)"),
                                 size: 28, tint: copiedKey ? .green.opacity(0.35) : nil) {
                     if let k = model.key(for: endpoint.id) {
                         Clipboard.copySecret(k.value)
@@ -241,9 +241,9 @@ struct EndpointCard: View {
         switch model.probes[endpoint.id] ?? .idle {
         case .idle: EmptyView()
         case .running:
-            HStack { ProgressView().controlSize(.small); Text("Проверяю…").font(.caption) }
+            HStack { ProgressView().controlSize(.small); Text(tr("Проверяю…", "Testing…")).font(.caption) }
         case .done(.ok(let m, let answer, let secs)):
-            Label("ок за \(String(format: "%.1f", secs)) с · ответила \(m) · «\(answer)»", systemImage: "checkmark.circle.fill")
+            Label(tr("ок за \(String(format: "%.1f", secs)) с · ответила \(m) · «\(answer)»", "ok in \(String(format: "%.1f", secs)) s · answered by \(m) · “\(answer)”"), systemImage: "checkmark.circle.fill")
                 .font(.caption).foregroundStyle(.green).lineLimit(2)
         case .done(.failed(let msg)):
             Label(msg, systemImage: "xmark.circle.fill").font(.caption).foregroundStyle(.red)

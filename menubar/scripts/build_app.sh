@@ -5,7 +5,7 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 APP="$HERE/build/LAN Model Proxy.app"
 CONFIG="${CONFIG:-release}"
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-1.1.0}"
 # UNIVERSAL=1 builds a fat arm64 + x86_64 binary (used for releases).
 ARCHS=""
 if [ "${UNIVERSAL:-0}" = "1" ]; then ARCHS="--arch arm64 --arch x86_64"; fi

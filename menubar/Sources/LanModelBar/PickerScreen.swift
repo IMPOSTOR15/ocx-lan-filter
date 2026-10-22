@@ -23,12 +23,12 @@ struct PickerScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScreenHeader(title: "Модель: \(target.alias)", backLabel: "Назад", back: { ui.back() }) {
+            ScreenHeader(title: tr("Модель: \(target.alias)", "Model: \(target.alias)"), backLabel: S.back, back: { ui.back() }) {
                 Color.clear.frame(width: 1, height: 1)
             }
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Поиск или свой id модели", text: $query)
+                TextField(tr("Поиск или свой id модели", "Search or enter a model id"), text: $query)
                     .textFieldStyle(.plain).focused($focused)
                     .onSubmit { submit() }
                     .onKeyPress(.downArrow) { move(1); return .handled }
@@ -40,14 +40,15 @@ struct PickerScreen: View {
                     }
                 if !query.isEmpty {
                     Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
-                        .buttonStyle(.borderless).foregroundStyle(.secondary).accessibilityLabel("Очистить поиск")
+                        .buttonStyle(.borderless).foregroundStyle(.secondary).accessibilityLabel(tr("Очистить поиск", "Clear search"))
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
             .glassSurface(Capsule())
             .padding(.horizontal, Theme.edge).padding(.bottom, 10)
             if model.ocxModels == nil {
-                Label("Каталог ocx недоступен. Можно ввести id вручную и нажать Return.",
+                Label(tr("Каталог ocx недоступен. Можно ввести id вручную и нажать Return.",
+                         "The ocx catalog is unavailable. Type an id manually and press Return."),
                       systemImage: "exclamationmark.triangle.fill")
                     .font(.caption).foregroundStyle(.orange)
                     .padding(.horizontal, 16).padding(.bottom, 8)
@@ -56,12 +57,12 @@ struct PickerScreen: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        if showCustom { row(id: trimmed, title: "Использовать «\(trimmed)»", context: nil, custom: true) }
+                        if showCustom { row(id: trimmed, title: tr("Использовать «\(trimmed)»", "Use “\(trimmed)”"), context: nil, custom: true) }
                         ForEach(filtered) { m in
                             row(id: m.id, title: m.id, context: m.contextLength, custom: false)
                         }
                         if filtered.isEmpty, !showCustom, model.ocxModels != nil {
-                            Text("Ничего не найдено").foregroundStyle(.secondary).padding(24)
+                            Text(tr("Ничего не найдено", "Nothing found")).foregroundStyle(.secondary).padding(24)
                         }
                     }
                     .padding(.horizontal, 10)

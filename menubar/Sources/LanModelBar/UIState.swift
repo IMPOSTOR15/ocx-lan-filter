@@ -18,13 +18,14 @@ enum Pending: Equatable {
 @MainActor
 final class UIState: ObservableObject {
     enum Screen: Equatable {
-        case list, form
+        case list, form, settings
         case picker(PickerTarget)
     }
 
     let model: AppModel
     @Published var screen: Screen = .list
     @Published var launchAtLogin: Bool
+    @Published private(set) var languagePreference: LanguagePreference = .stored()
 
     @Published private(set) var draft = ProxyConfig()
     @Published private(set) var editingID = ""
@@ -51,6 +52,12 @@ final class UIState: ObservableObject {
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
+    func setLanguage(_ pref: LanguagePreference) {
+        pref.store()
+        Lang.current = pref.resolve()
+        languagePreference = pref
+    }
+
     // MARK: navigation
 
     func back() {
@@ -59,6 +66,7 @@ final class UIState: ObservableObject {
         case .list: break
         case .picker(let t): screen = t.draftIndex == nil ? .list : .form
         case .form: requestClose()
+        case .settings: screen = .list
         }
     }
 
@@ -92,7 +100,7 @@ final class UIState: ObservableObject {
         let id = ConfigValidator.nextFreeID(in: draft)
         let seed = draft.endpoints.first?.aliases.first?.model ?? model.ocxModels?.first?.id ?? ""
         draft.endpoints.append(Endpoint(
-            id: id, name: "Новый эндпоинт", host: ListenScope.lan.rawValue,
+            id: id, name: tr("Новый эндпоинт", "New endpoint"), host: ListenScope.lan.rawValue,
             port: ConfigValidator.nextFreePort(in: draft),
             keyFile: KeyStore.defaultKeyFile(forEndpoint: id),
             aliases: [AliasMapping(alias: "local-llm", model: seed)]))

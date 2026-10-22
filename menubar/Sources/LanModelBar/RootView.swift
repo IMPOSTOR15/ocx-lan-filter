@@ -16,8 +16,10 @@ struct RootView: View {
             case .list: ListScreen(model: model, ui: ui)
             case .form: FormScreen(model: model, ui: ui)
             case .picker(let t): PickerScreen(model: model, ui: ui, target: t)
+            case .settings: SettingsScreen(model: model, ui: ui)
             }
         }
+        .id(ui.languagePreference)
         .frame(width: Self.width, height: Self.height)
         .clipped()
         .disabled(ui.pending != nil)
@@ -82,29 +84,32 @@ struct ConfirmBar: View {
 
     private var message: String {
         switch pending {
-        case .discard: return "Отменить несохранённые изменения?"
-        case .delete: return "Удалить эндпоинт «\(name)»? Его ключ будет удалён, клиенты потеряют доступ."
-        case .rotate: return "Старый ключ перестанет работать сразу. Клиентов придётся перенастроить."
-        case .conflict: return "Пока форма была открыта, config.json изменили снаружи (например, командой lanmodel)."
-        case .restart: return "Перезапуск ненадолго оборвёт текущие запросы."
+        case .discard: return tr("Отменить несохранённые изменения?", "Discard unsaved changes?")
+        case .delete: return tr("Удалить эндпоинт «\(name)»? Его ключ будет удалён, клиенты потеряют доступ.",
+                                  "Delete endpoint “\(name)”? Its key will be removed and clients will lose access.")
+        case .rotate: return tr("Старый ключ перестанет работать сразу. Клиентов придётся перенастроить.",
+                                  "The old key stops working immediately. Clients will need to be reconfigured.")
+        case .conflict: return tr("Пока форма была открыта, config.json изменили снаружи (например, командой lanmodel).",
+                                    "config.json was changed outside while the form was open (for example by lanmodel).")
+        case .restart: return tr("Перезапуск ненадолго оборвёт текущие запросы.", "Restarting briefly interrupts requests in progress.")
         }
     }
 
     private var cancelLabel: String {
         switch pending {
-        case .discard: return "Продолжить правку"
-        case .conflict: return "Перечитать"
+        case .discard: return tr("Продолжить правку", "Keep editing")
+        case .conflict: return tr("Перечитать", "Reload")
         default: return S.cancel
         }
     }
 
     private var actionLabel: String {
         switch pending {
-        case .discard: return "Отменить изменения"
+        case .discard: return tr("Отменить изменения", "Discard changes")
         case .delete: return S.delete
-        case .rotate: return "Сменить ключ"
+        case .rotate: return tr("Сменить ключ", "Rotate key")
         case .conflict: return S.overwrite
-        case .restart: return "Перезапустить"
+        case .restart: return tr("Перезапустить", "Restart")
         }
     }
 
