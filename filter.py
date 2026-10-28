@@ -25,6 +25,8 @@ KEY_FILE = os.path.join(BASE_DIR, "key")
 DEFAULT_HOST = os.environ.get("FILTER_HOST", "0.0.0.0")
 DEFAULT_PORT = int(os.environ.get("FILTER_PORT", "10200"))
 DEFAULT_UPSTREAM_PORT = int(os.environ.get("UPSTREAM_PORT", "10100"))
+# Advertised so clients (omp, opencode) do not strip images before sending; the upstream model decides.
+INPUT_MODALITIES = ("text", "image")
 DEFAULT_CONTEXT_LENGTH = 1_000_000  # advertised to clients only; the real limit is the upstream model's
 ALIAS = "local-llm"
 DEFAULT_UPSTREAM_MODEL = "unset/choose-a-model"  # placeholder until a model is picked (app or `lanmodel set`)
@@ -305,7 +307,12 @@ class Handler(BaseHTTPRequestHandler):
                 "object": "list",
                 "data": [{"id": a["alias"], "object": "model", "created": 0, "owned_by": "local",
                           "context_length": a["contextLength"],
-                          "capabilities": {"context_length": a["contextLength"]}}
+                          "input_modalities": list(INPUT_MODALITIES),
+                          "architecture": {"input_modalities": list(INPUT_MODALITIES),
+                                           "output_modalities": ["text"]},
+                          "capabilities": {"context_length": a["contextLength"],
+                                           "input_modalities": list(INPUT_MODALITIES),
+                                           "output_modalities": ["text"]}}
                          for a in ep["aliases"]],
             })
         if path == "/healthz":

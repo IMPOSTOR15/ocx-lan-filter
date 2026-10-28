@@ -79,6 +79,9 @@ class AuthAndRouting(FilterCase):
         self.assertEqual([m["id"] for m in body["data"]], ["smart", "fast"])
         self.assertEqual(body["data"][1]["context_length"], 8000)
         self.assertNotIn("real/big", json.dumps(body))
+        for m in body["data"]:
+            self.assertEqual(m["capabilities"]["input_modalities"], ["text", "image"])
+            self.assertEqual(m["architecture"]["input_modalities"], ["text", "image"])
 
     def test_p10_other_paths_404(self):  # P-10
         ep = make_endpoint()

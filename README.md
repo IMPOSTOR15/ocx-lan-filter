@@ -123,7 +123,7 @@ A ready-made prompt you can hand to an AI agent on the other device to set up op
 | Request | Result |
 |---|---|
 | no key or wrong key | 401 |
-| `GET /v1/models` | 200, only the aliases of this endpoint |
+| `GET /v1/models` | 200, only the aliases of this endpoint; advertises `input_modalities: [text, image]` so clients do not strip images |
 | `GET /healthz` | 200, alias and current real model |
 | `POST /v1/chat/completions`, `POST /v1/responses` with an alias as `model` | proxied to `ocx` with the model swapped |
 | same paths with any other `model` (including the real name) | 403 |

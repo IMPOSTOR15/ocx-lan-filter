@@ -56,6 +56,19 @@ B) Codex. Добавь в ~/.codex/config.toml, не меняя существу
   Проверка: `codex exec --skip-git-repo-check -c model_provider=local_lan --model local-llm "What is 1+1? Just the number."`
   Примечание: если установленная версия Codex не поддерживает wire_api="chat", не настраивай его молча. Сообщи мне версию и ошибку.
 
+C0) omp (oh-my-pi). Модели из /v1/models подхватываются автоматически (discovery openai-models-list), картинки включены. Если провайдер описан вручную в ~/.omp/agent/models.yml, у модели local-llm обязательно укажи `input: [text, image]`, иначе omp заменит картинки заглушкой «[image omitted: the active model does not support image input]»:
+  providers:
+    local-lan:
+      baseUrl: http://<MAC_LAN_IP>:10200/v1
+      apiKey: <YOUR_KEY>
+      api: openai-completions
+      models:
+        - id: local-llm
+          input: [text, image]
+          contextWindow: 1000000
+          maxTokens: 64000
+  Картинки апстрим принимает только как base64 data: URL, http-ссылки отклоняются.
+
 C) Claude Code. Он говорит на Anthropic API, а этот сервер отдаёт OpenAI Chat Completions, поэтому напрямую не подключится. Ничего не настраивай, просто сообщи мне об этом.
 
 D) Любой другой клиент: используй общий формат (base URL, ключ, модель local-llm, тип "OpenAI-compatible").
